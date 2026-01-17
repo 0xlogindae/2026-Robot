@@ -54,10 +54,15 @@ public class AimAndShoot extends Command {
 
     // https://upload.wikimedia.org/wikipedia/commons/c/c1/Yaw_Axis_Corrected.svg
     // Name , X offset, Y offset, Z offset, Roll offset, Pitch offset, Yaw offset
+	
+	// X+ → Pointing forward (Forward Vector)
+	// Y+ → Pointing toward the robot’s right (Right Vector)
+	// Z+ → Pointing upward (Up Vector)
+	
     // LimelightHelpers Measures distance in Meters - Degree in Radians
     private static final LimelightConfig[] LIMELIGHTS = {
-            new LimelightConfig("limelight_front",0.25,0.0,0.8,0.0,Math.toRadians(10),0.0),
-            new LimelightConfig("limelight_back",-0.25,0.0,0.8,0.0,Math.toRadians(5),Math.toRadians(180))
+            new LimelightConfig("limelight_front",0.3556,0.0,0.13335,Math.toRadians(0),Math.toRadians(55),Math.toRadians(0)),
+            new LimelightConfig("limelight_back",-0.3556,0.0,0.13335,Math.toRadians(0),Math.toRadians(55),Math.toRadians(180))
     };
 
 public AimAndShoot(CommandSwerveDrivetrain drivetrain, Intake intake,
