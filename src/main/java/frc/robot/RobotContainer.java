@@ -21,12 +21,14 @@ import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.motorcontrol.PWMVictorSPX;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.robot.commands.AimAndShoot;
+import frc.robot.commands.DisplayMode;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CANdleSubsystem;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
@@ -37,9 +39,11 @@ import frc.robot.subsystems.OuttakeAngle;
 public class RobotContainer {
 
     // Subsystems
-    private final Intake intake = new Intake(18, 1);
-    private final OuttakeAngle outtakeAngle = new OuttakeAngle(5);
+    private final Intake intake = new Intake(26, 24);
+    private final OuttakeAngle outtakeAngle = new OuttakeAngle(27);
     private final CANdleSubsystem lights = new CANdleSubsystem(0);
+
+    private final double SpeedReduction = 0.5;
 
     // Ignore the following Codeblock
     private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
@@ -98,9 +102,9 @@ public class RobotContainer {
         // Drivebase Controls
         drivetrain.setDefaultCommand(
             drivetrain.applyRequest(() ->
-                drive.withVelocityX(-joystick.getLeftY() * MaxSpeed)
-                    .withVelocityY(-joystick.getLeftX() * MaxSpeed)
-                    .withRotationalRate(-joystick.getRightX() * MaxAngularRate)
+                drive.withVelocityX(-joystick.getLeftY() * MaxSpeed * SpeedReduction)
+                    .withVelocityY(-joystick.getLeftX() * MaxSpeed * SpeedReduction)
+                    .withRotationalRate(-joystick.getRightX() * MaxAngularRate * SpeedReduction)
             )
         );
 
@@ -116,6 +120,9 @@ public class RobotContainer {
                 }
             })
         );
+
+        joystick.y().whileTrue(new DisplayMode(lights));
+
 
 
         // DO NOT EDIT ANYTHING ELSE BELOW THIS (unless KJ)

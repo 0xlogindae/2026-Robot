@@ -5,6 +5,8 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
+// import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.LimelightHelpers;
 import frc.robot.subsystems.CANdleSubsystem;
@@ -22,11 +24,12 @@ public class AimAndShoot extends Command {
     private final BooleanSupplier autoButton;
     private final double deadbandDeg;
     private final CANdleSubsystem lights;
+    // private final Field2d m_field = new Field2d();
 
     // Allow moving relative to self
     private final SwerveRequest.RobotCentric m_request = new SwerveRequest.RobotCentric();
     
-    private final PIDController turnPID = new PIDController(4.0, 0.0, 0.3);
+    private final PIDController turnPID = new PIDController(0.2, 0.0, 0.3);
 
     private static final double DEAD_BAND = 4;
     private static final double ANGLE_MIN = 20.0;
@@ -61,8 +64,8 @@ public class AimAndShoot extends Command {
 	
     // LimelightHelpers Measures distance in Meters - Degree in Radians
     private static final LimelightConfig[] LIMELIGHTS = {
-            new LimelightConfig("limelight_front",0.3556,0.0,0.13335,Math.toRadians(0),Math.toRadians(55),Math.toRadians(0)),
-            new LimelightConfig("limelight_back",-0.3556,0.0,0.13335,Math.toRadians(0),Math.toRadians(55),Math.toRadians(180))
+            new LimelightConfig("limelight-front",0.3556,0.0,0.13335,Math.toRadians(0),Math.toRadians(55),Math.toRadians(0)),
+            new LimelightConfig("limelight-back",-0.3556,0.0,0.13335,Math.toRadians(0),Math.toRadians(55),Math.toRadians(180))
     };
 
 public AimAndShoot(CommandSwerveDrivetrain drivetrain, Intake intake,
@@ -86,8 +89,14 @@ public AimAndShoot(CommandSwerveDrivetrain drivetrain, Intake intake,
 
     @Override
     public void execute() {
+
+        // m_field.setRobotPose(getAverageBotPose());
+        // SmartDashboard.putData("Field Location (ONLYWHILEALIGNING)", m_field);
+
         double omega = 0.0;
         Pose2d botPose = getAverageBotPose();
+        // Pose2d botPoseLog = botPose;
+        // SmartDashboard.putString("AverageBotPose", botPoseLog.toString());
         // Use previous position if unknown (I don't actually know if this will work or not)
         if(botPose == null && lastKnownPose != null) botPose = lastKnownPose;
 
@@ -101,21 +110,26 @@ public AimAndShoot(CommandSwerveDrivetrain drivetrain, Intake intake,
 	    
 	    // Find rectangular difference between the robot and the hopper
             double dx = hopperX - botPose.getX();
+            SmartDashboard.putNumber("Calculated DX", dx);
             double dy = hopperY - botPose.getY();
+            SmartDashboard.putNumber("Calculated DY", dx);
 
             // Fetch Target Heading
             double targetAngleRad = Math.atan2(dy, dx);
             double currentAngleRad = botPose.getRotation().getRadians();
+            SmartDashboard.putNumber("TargetAngleHeading", currentAngleRad * (180 / Math.PI));
 
             // Find quickest path
             double error = targetAngleRad - currentAngleRad;
             while(error > Math.PI) error -= 2*Math.PI;
             while(error < -Math.PI) error += 2*Math.PI;
+            SmartDashboard.putNumber("Calculated Error", error);
 
             // Find omega based on a turnPID & target angle direction and dist
             if(Math.abs(Math.toDegrees(error)) > deadbandDeg){
                 omega = turnPID.calculate(currentAngleRad, targetAngleRad);
                 omega = Math.max(Math.min(omega,3.0),-3.0);
+                SmartDashboard.putNumber("Found Omega", omega);
             } else {
                 turnPID.reset();
             }
@@ -125,6 +139,7 @@ public AimAndShoot(CommandSwerveDrivetrain drivetrain, Intake intake,
 
                 // Find distance using the hypotenuse of the difference
                 double distanceFeet = Math.hypot(dx, dy)*3.28084;
+                SmartDashboard.putNumber("Distance from Tag", distanceFeet);
 
                 double distanceFactor = Math.min(distanceFeet/SHOOT_DISTANCE,1.0);
                 // Might need to change this formula later
@@ -143,14 +158,17 @@ public AimAndShoot(CommandSwerveDrivetrain drivetrain, Intake intake,
                 outtakeAngle.stop();
                 if (autoIntakeLightsEnabled) {lights.setColor(11, 222, 0);};
             }
+            SmartDashboard.putBoolean("IsDetected", true);
 
         } else {
             System.out.println("No limelight data available and no fallback. Doing nothing.");
+            SmartDashboard.putBoolean("IsDetected", false);
             if (autoIntakeLightsEnabled) {lights.setColor(235, 52, 52);};
         }
 
 	    // Apply Change to Drivetrain control
         drivetrain.setControl(m_request.withVelocityX(0).withVelocityY(0).withRotationalRate(omega));
+        SmartDashboard.putBoolean("isAutoActive", true);
     }
 
     @Override
@@ -158,6 +176,7 @@ public AimAndShoot(CommandSwerveDrivetrain drivetrain, Intake intake,
         drivetrain.setControl(m_request.withRotationalRate(0));
         intake.stop();
         outtakeAngle.stop();
+        SmartDashboard.putBoolean("isAutoActive", false);
     }
 
     @Override
@@ -186,9 +205,14 @@ public AimAndShoot(CommandSwerveDrivetrain drivetrain, Intake intake,
         return null;
     }
 
+    SmartDashboard.putNumber("DetectedLimelights", count);
+
     double avgX = sumX / count;
+    SmartDashboard.putNumber("AvgX", avgX);
     double avgY = sumY / count;
+    SmartDashboard.putNumber("AvgY", avgY);
     double avgRot = Math.atan2(sumSin, sumCos);
+    SmartDashboard.putNumber("AvgRot", avgRot);
 
     return new Pose2d(avgX, avgY, new Rotation2d(avgRot));
     }
